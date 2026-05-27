@@ -1,0 +1,11 @@
+subscriber_id,full_name,email,phone_number,plan_type,activation_date,deactivation_date,status,region
+SUB001,John Tan,john.tan@email.com,+6591234567,Premium,2021-01-15,,ACTIVE,North
+SUB002,Priya Nair,priya.nair@email.com,+6598765432,Basic,2020-06-01,2023-12-01,INACTIVE,South
+SUB003,Wei Ming,wei.ming@email.com,+6587654321,Business,2019-03-10,,ACTIVE,East
+SUB004,Sarah Lim,sarah.lim@email.com,+6576543210,Premium,2022-08-20,,ACTIVE,West
+SUB005,Raj Kumar,raj.kumar@email.com,+6565432109,Basic,2021-11-05,2024-01-15,INACTIVE,Central
+SUB006,Emily Chua,emily.chua@email.com,+6554321098,Business,2020-02-28,,ACTIVE,North
+SUB007,David Ng,david.ng@email.com,+6543210987,Premium,2023-04-10,,ACTIVE,South
+SUB008,Mei Lin,mei.lin@email.com,+6532109876,Basic,2018-07-22,2023-08-01,INACTIVE,East
+SUB009,Arjun Pillai,arjun.p@email.com,+6521098765,Business,2022-01-01,,ACTIVE,West
+SUB010,Lisa Tan,lisa.tan@email.com,+6510987654,Premium,2021-09-30,,ACTIVE,Central
