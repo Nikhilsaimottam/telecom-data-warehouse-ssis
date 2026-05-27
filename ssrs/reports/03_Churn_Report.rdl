@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Report xmlns="http://schemas.microsoft.com/sqlserver/reporting/2010/01/reportdefinition"
+        xmlns:rd="http://schemas.microsoft.com/SQLServer/reporting/reportdesigner">
+  <Description>Churn Analysis Report - StarHub Telecom</Description>
+  <Author>Nikhil Sai</Author>
+
+  <DataSources>
+    <DataSource Name="TelecomDW">
+      <ConnectionProperties>
+        <DataProvider>SQL</DataProvider>
+        <ConnectString>Data Source=.;Initial Catalog=TelecomDW;Integrated Security=True</ConnectString>
+      </ConnectionProperties>
+    </DataSource>
+  </DataSources>
+
+  <DataSets>
+    <DataSet Name="ChurnAnalysis">
+      <Query>
+        <DataSourceName>TelecomDW</DataSourceName>
+        <CommandText>
+          SELECT
+            churn_year,
+            churn_month,
+            plan_type,
+            region,
+            total_churned,
+            avg_tenure_months,
+            avg_last_arpu,
+            churn_reason
+          FROM reporting.vw_ChurnAnalysis
+          ORDER BY churn_year DESC, churn_month DESC, total_churned DESC
+        </CommandText>
+      </Query>
+      <Fields>
+        <Field Name="churn_year"><DataField>churn_year</DataField></Field>
+        <Field Name="churn_month"><DataField>churn_month</DataField></Field>
+        <Field Name="plan_type"><DataField>plan_type</DataField></Field>
+        <Field Name="region"><DataField>region</DataField></Field>
+        <Field Name="total_churned"><DataField>total_churned</DataField></Field>
+        <Field Name="avg_tenure_months"><DataField>avg_tenure_months</DataField></Field>
+        <Field Name="avg_last_arpu"><DataField>avg_last_arpu</DataField></Field>
+        <Field Name="churn_reason"><DataField>churn_reason</DataField></Field>
+      </Fields>
+    </DataSet>
+  </DataSets>
+
+  <Body>
+    <ReportItems>
+      <Tablix Name="ChurnTable">
+        <TablixBody>
+          <TablixColumns>
+            <TablixColumn><Width>0.6in</Width></TablixColumn>
+            <TablixColumn><Width>0.6in</Width></TablixColumn>
+            <TablixColumn><Width>1in</Width></TablixColumn>
+            <TablixColumn><Width>0.8in</Width></TablixColumn>
+            <TablixColumn><Width>0.9in</Width></TablixColumn>
+            <TablixColumn><Width>1in</Width></TablixColumn>
+            <TablixColumn><Width>1in</Width></TablixColumn>
+            <TablixColumn><Width>1.2in</Width></TablixColumn>
+          </TablixColumns>
+          <TablixRows>
+            <TablixRow>
+              <Height>0.25in</Height>
+              <TablixCells>
+                <TablixCell><CellContents><Textbox Name="H1"><Paragraphs><Paragraph><TextRuns><TextRun><Value>Year</Value></TextRun></TextRuns></Paragraph></Paragraphs></Textbox></CellContents></TablixCell>
+                <TablixCell><CellContents><Textbox Name="H2"><Paragraphs><Paragraph><TextRuns><TextRun><Value>Month</Value></TextRun></TextRuns></Paragraph></Paragraphs></Textbox></CellContents></TablixCell>
+                <TablixCell><CellContents><Textbox Name="H3"><Paragraphs><Paragraph><TextRuns><TextRun><Value>Plan Type</Value></TextRun></TextRuns></Paragraph></Paragraphs></Textbox></CellContents></TablixCell>
+                <TablixCell><CellContents><Textbox Name="H4"><Paragraphs><Paragraph><TextRuns><TextRun><Value>Region</Value></TextRun></TextRuns></Paragraph></Paragraphs></Textbox></CellContents></TablixCell>
+                <TablixCell><CellContents><Textbox Name="H5"><Paragraphs><Paragraph><TextRuns><TextRun><Value>Total Churned</Value></TextRun></TextRuns></Paragraph></Paragraphs></Textbox></CellContents></TablixCell>
+                <TablixCell><CellContents><Textbox Name="H6"><Paragraphs><Paragraph><TextRuns><TextRun><Value>Avg Tenure (Mo)</Value></TextRun></TextRuns></Paragraph></Paragraphs></Textbox></CellContents></TablixCell>
+                <TablixCell><CellContents><Textbox Name="H7"><Paragraphs><Paragraph><TextRuns><TextRun><Value>Avg ARPU</Value></TextRun></TextRuns></Paragraph></Paragraphs></Textbox></CellContents></TablixCell>
+                <TablixCell><CellContents><Textbox Name="H8"><Paragraphs><Paragraph><TextRuns><TextRun><Value>Churn Reason</Value></TextRun></TextRuns></Paragraph></Paragraphs></Textbox></CellContents></TablixCell>
+              </TablixCells>
+            </TablixRow>
+            <TablixRow>
+              <Height>0.25in</Height>
+              <TablixCells>
+                <TablixCell><CellContents><Textbox Name="D1"><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Fields!churn_year.Value</Value></TextRun></TextRuns></Paragraph></Paragraphs></Textbox></CellContents></TablixCell>
+                <TablixCell><CellContents><Textbox Name="D2"><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Fields!churn_month.Value</Value></TextRun></TextRuns></Paragraph></Paragraphs></Textbox></CellContents></TablixCell>
+                <TablixCell><CellContents><Textbox Name="D3"><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Fields!plan_type.Value</Value></TextRun></TextRuns></Paragraph></Paragraphs></Textbox></CellContents></TablixCell>
+                <TablixCell><CellContents><Textbox Name="D4"><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Fields!region.Value</Value></TextRun></TextRuns></Paragraph></Paragraphs></Textbox></CellContents></TablixCell>
+                <TablixCell><CellContents><Textbox Name="D5"><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Fields!total_churned.Value</Value></TextRun></TextRuns></Paragraph></Paragraphs></Textbox></CellContents></TablixCell>
+                <TablixCell><CellContents><Textbox Name="D6"><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Fields!avg_tenure_months.Value</Value></TextRun></TextRuns></Paragraph></Paragraphs></Textbox></CellContents></TablixCell>
+                <TablixCell><CellContents><Textbox Name="D7"><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Format(Fields!avg_last_arpu.Value,"C2")</Value></TextRun></TextRuns></Paragraph></Paragraphs></Textbox></CellContents></TablixCell>
+                <TablixCell><CellContents><Textbox Name="D8"><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Fields!churn_reason.Value</Value></TextRun></TextRuns></Paragraph></Paragraphs></Textbox></CellContents></TablixCell>
+              </TablixCells>
+            </TablixRow>
+          </TablixRows>
+        </TablixBody>
+        <DataSetName>ChurnAnalysis</DataSetName>
+      </Tablix>
+    </ReportItems>
+    <Height>4in</Height>
+  </Body>
+</Report>
