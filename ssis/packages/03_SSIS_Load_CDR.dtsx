@@ -1,0 +1,182 @@
+<?xml version="1.0"?>
+<DTS:Executable xmlns:DTS="www.microsoft.com/SqlServer/Dts"
+  DTS:refId="Package"
+  DTS:CreationDate="2024-01-01T00:00:00"
+  DTS:CreatorName="Nikhil Sai"
+  DTS:Description="Load Call Detail Records from CSV to Staging to DW"
+  DTS:ExecutableType="Microsoft.Package"
+  DTS:LocaleID="1033"
+  DTS:ObjectName="03_SSIS_Load_CDR"
+  DTS:VersionBuild="1">
+
+  <DTS:ConnectionManagers>
+    <DTS:ConnectionManager
+      DTS:refId="CM.FlatFile.CDR"
+      DTS:CreationName="FLATFILE"
+      DTS:ObjectName="FF_CDR_CSV">
+      <DTS:ObjectData>
+        <DTS:ConnectionManager
+          DTS:Format="Delimited"
+          DTS:LocaleID="1033"
+          DTS:HeaderRowDelimiter="_x000D__x000A_"
+          DTS:ColumnNamesInFirstDataRow="True"
+          DTS:RowDelimiter=""
+          DTS:TextQualifier="&quot;"
+          DTS:CodePage="1252"
+          DTS:ConnectionString="..\sample_data\cdr.csv">
+        </DTS:ConnectionManager>
+      </DTS:ObjectData>
+    </DTS:ConnectionManager>
+
+    <DTS:ConnectionManager
+      DTS:refId="CM.OLEDB.TelecomDW"
+      DTS:CreationName="OLEDB"
+      DTS:ObjectName="OLE_TelecomDW">
+      <DTS:ObjectData>
+        <DTS:ConnectionManager
+          DTS:ConnectionString="Provider=SQLNCLI11;Server=.;Database=TelecomDW;Integrated Security=SSPI;">
+        </DTS:ConnectionManager>
+      </DTS:ObjectData>
+    </DTS:ConnectionManager>
+  </DTS:ConnectionManagers>
+
+  <DTS:Executables>
+
+    <!-- TASK 1: Data Flow - Load CDR CSV to Staging -->
+    <DTS:Executable
+      DTS:refId="Package\DFT_Load_CDR_Staging"
+      DTS:CreationName="Microsoft.Pipeline"
+      DTS:Description="Extract CDR CSV and load into staging.CDR"
+      DTS:ExecutableType="Microsoft.Pipeline"
+      DTS:ObjectName="DFT Load CDR to Staging">
+      <DTS:ObjectData>
+        <pipeline>
+          <components>
+            <component
+              refId="1"
+              componentClassID="Microsoft.FlatFileSource"
+              description="Read CDR CSV"
+              name="FF SRC CDR">
+              <connections>
+                <connection
+                  connectionManagerID="CM.FlatFile.CDR"
+                  connectionManagerRefId="CM.FlatFile.CDR"
+                  description="Flat file connection"
+                  name="FlatFileConnection" />
+              </connections>
+            </component>
+
+            <!-- Data Quality: Conditional Split - Filter invalid records -->
+            <component
+              refId="2"
+              componentClassID="Microsoft.ConditionalSplit"
+              description="Filter out records with null caller_id or zero duration"
+              name="CSPL Filter Invalid CDR">
+              <inputs>
+                <input refId="2.Input" name="Conditional Split Input" />
+              </inputs>
+              <outputs>
+                <output refId="2.Output.Valid"
+                  name="Valid CDR Records"
+                  isErrorOut="false">
+                  <outputColumns />
+                  <expressionType>Conditional</expressionType>
+                  <expression>!ISNULL(caller_id) &amp;&amp; (DT_I4)call_duration_sec > 0</expression>
+                </output>
+                <output refId="2.Output.Invalid"
+                  name="Invalid CDR Records"
+                  isErrorOut="false">
+                </output>
+              </outputs>
+            </component>
+
+            <component
+              refId="3"
+              componentClassID="Microsoft.DerivedColumn"
+              description="Add load_date column"
+              name="DRV Load Date">
+              <inputs>
+                <input refId="3.Input" name="Derived Column Input" />
+              </inputs>
+              <outputs>
+                <output refId="3.Output" name="Derived Column Output">
+                  <outputColumns>
+                    <outputColumn
+                      refId="3.Output.Column1"
+                      dataType="dbTimeStamp"
+                      name="load_date"
+                      expression="GETDATE()" />
+                  </outputColumns>
+                </output>
+              </outputs>
+            </component>
+
+            <component
+              refId="4"
+              componentClassID="Microsoft.OLEDBDestination"
+              description="Load into staging.CDR"
+              name="OLE DST Staging CDR">
+              <properties>
+                <property name="OpenRowset">staging.CDR</property>
+                <property name="AccessMode">3</property>
+              </properties>
+              <connections>
+                <connection
+                  connectionManagerID="CM.OLEDB.TelecomDW"
+                  connectionManagerRefId="CM.OLEDB.TelecomDW"
+                  name="OleDbConnection" />
+              </connections>
+            </component>
+          </components>
+        </pipeline>
+      </DTS:ObjectData>
+    </DTS:Executable>
+
+    <!-- TASK 2: Execute SP - Load Staging CDR to DW -->
+    <DTS:Executable
+      DTS:refId="Package\ESQLT_Load_DW_CDR"
+      DTS:CreationName="Microsoft.ExecuteSQLTask"
+      DTS:Description="Execute usp_LoadCDR stored procedure"
+      DTS:ExecutableType="Microsoft.ExecuteSQLTask"
+      DTS:ObjectName="ESQLT Load DW CDR">
+      <DTS:ObjectData>
+        <SqlTaskData
+          DatabaseName="TelecomDW"
+          SqlStatementSource="EXEC dw.usp_LoadCDR;"
+          Connection="CM.OLEDB.TelecomDW" />
+      </DTS:ObjectData>
+    </DTS:Executable>
+
+    <!-- TASK 3: Execute SP - Detect Churn after CDR load -->
+    <DTS:Executable
+      DTS:refId="Package\ESQLT_Detect_Churn"
+      DTS:CreationName="Microsoft.ExecuteSQLTask"
+      DTS:Description="Execute usp_DetectChurn stored procedure"
+      DTS:ExecutableType="Microsoft.ExecuteSQLTask"
+      DTS:ObjectName="ESQLT Detect Churn">
+      <DTS:ObjectData>
+        <SqlTaskData
+          DatabaseName="TelecomDW"
+          SqlStatementSource="EXEC dw.usp_DetectChurn;"
+          Connection="CM.OLEDB.TelecomDW" />
+      </DTS:ObjectData>
+    </DTS:Executable>
+
+  </DTS:Executables>
+
+  <DTS:PrecedenceConstraints>
+    <DTS:PrecedenceConstraint
+      DTS:refId="Package\PC1"
+      DTS:From="Package\DFT_Load_CDR_Staging"
+      DTS:To="Package\ESQLT_Load_DW_CDR"
+      DTS:EvalOp="1"
+      DTS:Value="0" />
+    <DTS:PrecedenceConstraint
+      DTS:refId="Package\PC2"
+      DTS:From="Package\ESQLT_Load_DW_CDR"
+      DTS:To="Package\ESQLT_Detect_Churn"
+      DTS:EvalOp="1"
+      DTS:Value="0" />
+  </DTS:PrecedenceConstraints>
+
+</DTS:Executable>
