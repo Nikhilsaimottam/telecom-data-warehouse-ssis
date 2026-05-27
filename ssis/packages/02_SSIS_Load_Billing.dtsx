@@ -1,0 +1,137 @@
+<?xml version="1.0"?>
+<DTS:Executable xmlns:DTS="www.microsoft.com/SqlServer/Dts"
+  DTS:refId="Package"
+  DTS:CreationDate="2024-01-01T00:00:00"
+  DTS:CreatorName="Nikhil Sai"
+  DTS:Description="Load Billing from CSV to Staging to DW"
+  DTS:ExecutableType="Microsoft.Package"
+  DTS:LocaleID="1033"
+  DTS:ObjectName="02_SSIS_Load_Billing"
+  DTS:VersionBuild="1">
+
+  <DTS:ConnectionManagers>
+    <DTS:ConnectionManager
+      DTS:refId="CM.FlatFile.Billing"
+      DTS:CreationName="FLATFILE"
+      DTS:ObjectName="FF_Billing_CSV">
+      <DTS:ObjectData>
+        <DTS:ConnectionManager
+          DTS:Format="Delimited"
+          DTS:LocaleID="1033"
+          DTS:HeaderRowDelimiter="_x000D__x000A_"
+          DTS:ColumnNamesInFirstDataRow="True"
+          DTS:RowDelimiter=""
+          DTS:TextQualifier="&quot;"
+          DTS:CodePage="1252"
+          DTS:ConnectionString="..\sample_data\billing.csv">
+        </DTS:ConnectionManager>
+      </DTS:ObjectData>
+    </DTS:ConnectionManager>
+
+    <DTS:ConnectionManager
+      DTS:refId="CM.OLEDB.TelecomDW"
+      DTS:CreationName="OLEDB"
+      DTS:ObjectName="OLE_TelecomDW">
+      <DTS:ObjectData>
+        <DTS:ConnectionManager
+          DTS:ConnectionString="Provider=SQLNCLI11;Server=.;Database=TelecomDW;Integrated Security=SSPI;">
+        </DTS:ConnectionManager>
+      </DTS:ObjectData>
+    </DTS:ConnectionManager>
+  </DTS:ConnectionManagers>
+
+  <DTS:Executables>
+
+    <!-- TASK 1: Data Flow - Load CSV to Staging -->
+    <DTS:Executable
+      DTS:refId="Package\DFT_Load_Billing_Staging"
+      DTS:CreationName="Microsoft.Pipeline"
+      DTS:Description="Extract Billing CSV and load into staging.Billing"
+      DTS:ExecutableType="Microsoft.Pipeline"
+      DTS:ObjectName="DFT Load Billing to Staging">
+      <DTS:ObjectData>
+        <pipeline>
+          <components>
+            <component
+              refId="1"
+              componentClassID="Microsoft.FlatFileSource"
+              description="Read billing CSV"
+              name="FF SRC Billing">
+              <connections>
+                <connection
+                  connectionManagerID="CM.FlatFile.Billing"
+                  connectionManagerRefId="CM.FlatFile.Billing"
+                  description="Flat file connection"
+                  name="FlatFileConnection" />
+              </connections>
+            </component>
+
+            <component
+              refId="2"
+              componentClassID="Microsoft.DerivedColumn"
+              description="Add load_date column"
+              name="DRV Load Date">
+              <inputs>
+                <input refId="2.Input" name="Derived Column Input" />
+              </inputs>
+              <outputs>
+                <output refId="2.Output" name="Derived Column Output">
+                  <outputColumns>
+                    <outputColumn
+                      refId="2.Output.Column1"
+                      dataType="dbTimeStamp"
+                      name="load_date"
+                      expression="GETDATE()" />
+                  </outputColumns>
+                </output>
+              </outputs>
+            </component>
+
+            <component
+              refId="3"
+              componentClassID="Microsoft.OLEDBDestination"
+              description="Load into staging.Billing"
+              name="OLE DST Staging Billing">
+              <properties>
+                <property name="OpenRowset">staging.Billing</property>
+                <property name="AccessMode">3</property>
+              </properties>
+              <connections>
+                <connection
+                  connectionManagerID="CM.OLEDB.TelecomDW"
+                  connectionManagerRefId="CM.OLEDB.TelecomDW"
+                  name="OleDbConnection" />
+              </connections>
+            </component>
+          </components>
+        </pipeline>
+      </DTS:ObjectData>
+    </DTS:Executable>
+
+    <!-- TASK 2: Execute SP - Load Staging to DW -->
+    <DTS:Executable
+      DTS:refId="Package\ESQLT_Load_DW_Billing"
+      DTS:CreationName="Microsoft.ExecuteSQLTask"
+      DTS:Description="Execute usp_LoadBilling stored procedure"
+      DTS:ExecutableType="Microsoft.ExecuteSQLTask"
+      DTS:ObjectName="ESQLT Load DW Billing">
+      <DTS:ObjectData>
+        <SqlTaskData
+          DatabaseName="TelecomDW"
+          SqlStatementSource="EXEC dw.usp_LoadBilling;"
+          Connection="CM.OLEDB.TelecomDW" />
+      </DTS:ObjectData>
+    </DTS:Executable>
+
+  </DTS:Executables>
+
+  <DTS:PrecedenceConstraints>
+    <DTS:PrecedenceConstraint
+      DTS:refId="Package\PC1"
+      DTS:From="Package\DFT_Load_Billing_Staging"
+      DTS:To="Package\ESQLT_Load_DW_Billing"
+      DTS:EvalOp="1"
+      DTS:Value="0" />
+  </DTS:PrecedenceConstraints>
+
+</DTS:Executable>
