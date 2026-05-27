@@ -1,0 +1,49 @@
+-- ============================================
+-- SP: Churn Detection Logic
+-- Client: StarHub Telecom
+-- Author: Nikhil Sai
+-- ============================================
+
+USE TelecomDW;
+GO
+
+CREATE PROCEDURE dw.usp_DetectChurn
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    BEGIN TRY
+        BEGIN TRANSACTION;
+
+        INSERT INTO dw.ChurnTracking (
+            subscriber_key, churn_date, churn_reason,
+            last_plan_type, last_arpu, tenure_months
+        )
+        SELECT 
+            s.subscriber_key,
+            GETDATE()                                       AS churn_date,
+            'Deactivated'                                   AS churn_reason,
+            s.plan_type                                     AS last_plan_type,
+            AVG(b.amount_paid)                              AS last_arpu,
+            DATEDIFF(MONTH, s.activation_date, GETDATE())   AS tenure_months
+        FROM dw.Subscribers s
+        LEFT JOIN dw.Billing b ON s.subscriber_key = b.subscriber_key
+        WHERE s.status = 'INACTIVE'
+        AND NOT EXISTS (
+            SELECT 1 FROM dw.ChurnTracking ct
+            WHERE ct.subscriber_key = s.subscriber_key
+        )
+        GROUP BY 
+            s.subscriber_key, s.plan_type,
+            s.activation_date;
+
+        COMMIT TRANSACTION;
+        PRINT 'Churn detection completed successfully.';
+
+    END TRY
+    BEGIN CATCH
+        ROLLBACK TRANSACTION;
+        PRINT 'Error: ' + ERROR_MESSAGE();
+    END CATCH
+END;
+GO
