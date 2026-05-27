@@ -1,0 +1,48 @@
+-- ============================================
+-- SP: Load CDR Staging to DW
+-- Client: StarHub Telecom
+-- Author: Nikhil Sai
+-- ============================================
+
+USE TelecomDW;
+GO
+
+CREATE PROCEDURE dw.usp_LoadCDR
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    BEGIN TRY
+        BEGIN TRANSACTION;
+
+        INSERT INTO dw.CDR (
+            cdr_id, caller_subscriber_key, call_date,
+            call_duration_sec, call_type, network_type,
+            region, charge_amount
+        )
+        SELECT 
+            c.cdr_id,
+            d.subscriber_key,
+            TRY_CAST(c.call_date AS DATE),
+            TRY_CAST(c.call_duration_sec AS INT),
+            c.call_type,
+            c.network_type,
+            c.region,
+            TRY_CAST(c.charge_amount AS DECIMAL(10,2))
+        FROM staging.CDR c
+        JOIN dw.Subscribers d ON c.caller_id = d.subscriber_id
+        WHERE NOT EXISTS (
+            SELECT 1 FROM dw.CDR dw
+            WHERE dw.cdr_id = c.cdr_id
+        );
+
+        COMMIT TRANSACTION;
+        PRINT 'CDR loaded successfully.';
+
+    END TRY
+    BEGIN CATCH
+        ROLLBACK TRANSACTION;
+        PRINT 'Error: ' + ERROR_MESSAGE();
+    END CATCH
+END;
+GO
