@@ -1,0 +1,47 @@
+-- ============================================
+-- SP: Load Network Performance Staging to DW
+-- Client: StarHub Telecom
+-- Author: Nikhil Sai
+-- ============================================
+
+USE TelecomDW;
+GO
+
+CREATE PROCEDURE dw.usp_LoadNetworkPerformance
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    BEGIN TRY
+        BEGIN TRANSACTION;
+
+        INSERT INTO dw.NetworkPerformance (
+            tower_id, region, record_date,
+            signal_strength, downtime_minutes,
+            data_usage_gb, network_type
+        )
+        SELECT 
+            n.tower_id,
+            n.region,
+            TRY_CAST(n.record_date AS DATE),
+            TRY_CAST(n.signal_strength AS DECIMAL(5,2)),
+            TRY_CAST(n.downtime_minutes AS INT),
+            TRY_CAST(n.data_usage_gb AS DECIMAL(10,3)),
+            n.network_type
+        FROM staging.NetworkPerformance n
+        WHERE NOT EXISTS (
+            SELECT 1 FROM dw.NetworkPerformance dw
+            WHERE dw.tower_id = n.tower_id
+            AND dw.record_date = TRY_CAST(n.record_date AS DATE)
+        );
+
+        COMMIT TRANSACTION;
+        PRINT 'Network Performance loaded successfully.';
+
+    END TRY
+    BEGIN CATCH
+        ROLLBACK TRANSACTION;
+        PRINT 'Error: ' + ERROR_MESSAGE();
+    END CATCH
+END;
+GO
