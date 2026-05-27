@@ -1,0 +1,142 @@
+<?xml version="1.0"?>
+<DTS:Executable xmlns:DTS="www.microsoft.com/SqlServer/Dts"
+  DTS:refId="Package"
+  DTS:CreationDate="2024-01-01T00:00:00"
+  DTS:CreatorName="Nikhil Sai"
+  DTS:Description="Load Subscribers from CSV to Staging to DW"
+  DTS:ExecutableType="Microsoft.Package"
+  DTS:LocaleID="1033"
+  DTS:ObjectName="01_SSIS_Load_Subscribers"
+  DTS:VersionBuild="1">
+
+  <DTS:ConnectionManagers>
+    <!-- Flat File Connection: Source CSV -->
+    <DTS:ConnectionManager
+      DTS:refId="CM.FlatFile.Subscribers"
+      DTS:CreationName="FLATFILE"
+      DTS:ObjectName="FF_Subscribers_CSV">
+      <DTS:ObjectData>
+        <DTS:ConnectionManager
+          DTS:Format="Delimited"
+          DTS:LocaleID="1033"
+          DTS:HeaderRowDelimiter="_x000D__x000A_"
+          DTS:ColumnNamesInFirstDataRow="True"
+          DTS:RowDelimiter=""
+          DTS:TextQualifier="&quot;"
+          DTS:CodePage="1252"
+          DTS:ConnectionString="..\sample_data\subscribers.csv">
+        </DTS:ConnectionManager>
+      </DTS:ObjectData>
+    </DTS:ConnectionManager>
+
+    <!-- OLE DB Connection: SQL Server TelecomDW -->
+    <DTS:ConnectionManager
+      DTS:refId="CM.OLEDB.TelecomDW"
+      DTS:CreationName="OLEDB"
+      DTS:ObjectName="OLE_TelecomDW">
+      <DTS:ObjectData>
+        <DTS:ConnectionManager
+          DTS:ConnectionString="Provider=SQLNCLI11;Server=.;Database=TelecomDW;Integrated Security=SSPI;">
+        </DTS:ConnectionManager>
+      </DTS:ObjectData>
+    </DTS:ConnectionManager>
+  </DTS:ConnectionManagers>
+
+  <DTS:Executables>
+
+    <!-- TASK 1: Data Flow - Load CSV to Staging -->
+    <DTS:Executable
+      DTS:refId="Package\DFT_Load_Subscribers_Staging"
+      DTS:CreationName="Microsoft.Pipeline"
+      DTS:Description="Extract CSV and load into staging.Subscribers"
+      DTS:ExecutableType="Microsoft.Pipeline"
+      DTS:ObjectName="DFT Load Subscribers to Staging">
+      <DTS:ObjectData>
+        <pipeline>
+          <components>
+            <!-- Source: Flat File -->
+            <component
+              refId="1"
+              componentClassID="Microsoft.FlatFileSource"
+              description="Read subscribers CSV"
+              name="FF SRC Subscribers">
+              <connections>
+                <connection connectionManagerID="CM.FlatFile.Subscribers"
+                  connectionManagerRefId="CM.FlatFile.Subscribers"
+                  description="Flat file connection"
+                  name="FlatFileConnection" />
+              </connections>
+            </component>
+
+            <!-- Transformation: Derived Column - Add load_date -->
+            <component
+              refId="2"
+              componentClassID="Microsoft.DerivedColumn"
+              description="Add load_date column"
+              name="DRV Load Date">
+              <inputs>
+                <input refId="2.Input" name="Derived Column Input" />
+              </inputs>
+              <outputs>
+                <output refId="2.Output" name="Derived Column Output">
+                  <outputColumns>
+                    <outputColumn
+                      refId="2.Output.Column1"
+                      dataType="dbTimeStamp"
+                      name="load_date"
+                      expression="GETDATE()" />
+                  </outputColumns>
+                </output>
+              </outputs>
+            </component>
+
+            <!-- Destination: OLE DB - staging.Subscribers -->
+            <component
+              refId="3"
+              componentClassID="Microsoft.OLEDBDestination"
+              description="Load into staging.Subscribers"
+              name="OLE DST Staging Subscribers">
+              <properties>
+                <property name="OpenRowset">staging.Subscribers</property>
+                <property name="AccessMode">3</property>
+              </properties>
+              <connections>
+                <connection
+                  connectionManagerID="CM.OLEDB.TelecomDW"
+                  connectionManagerRefId="CM.OLEDB.TelecomDW"
+                  name="OleDbConnection" />
+              </connections>
+            </component>
+          </components>
+        </pipeline>
+      </DTS:ObjectData>
+    </DTS:Executable>
+
+    <!-- TASK 2: Execute SP - Load Staging to DW -->
+    <DTS:Executable
+      DTS:refId="Package\ESQLT_Load_DW_Subscribers"
+      DTS:CreationName="Microsoft.ExecuteSQLTask"
+      DTS:Description="Execute usp_LoadSubscribers stored procedure"
+      DTS:ExecutableType="Microsoft.ExecuteSQLTask"
+      DTS:ObjectName="ESQLT Load DW Subscribers">
+      <DTS:ObjectData>
+        <SqlTaskData
+          DatabaseName="TelecomDW"
+          SqlStatementSource="EXEC dw.usp_LoadSubscribers;"
+          Connection="CM.OLEDB.TelecomDW" />
+      </DTS:ObjectData>
+    </DTS:Executable>
+
+  </DTS:Executables>
+
+  <!-- Precedence: Task 1 must complete before Task 2 -->
+  <DTS:PrecedenceConstraints>
+    <DTS:PrecedenceConstraint
+      DTS:refId="Package\PC1"
+      DTS:From="Package\DFT_Load_Subscribers_Staging"
+      DTS:To="Package\ESQLT_Load_DW_Subscribers"
+      DTS:EvalOp="1"
+      DTS:Value="0" />
+  </DTS:PrecedenceConstraints>
+
+</DTS:Executable>
