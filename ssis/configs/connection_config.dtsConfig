@@ -1,0 +1,47 @@
+<?xml version="1.0"?>
+<DTSConfiguration>
+  <DTSConfigurationHeading>
+    <DTSConfigurationFileInfo
+      GeneratedBy="Nikhil Sai"
+      GeneratedFromPackageName="TelecomDW"
+      GeneratedFromPackageID="{telecom-dw-config}"
+      GeneratedDate="2024-01-01T00:00:00" />
+  </DTSConfigurationHeading>
+
+  <!-- SQL Server Connection -->
+  <Configuration ConfiguredType="Property"
+    Path="\Package.Connections[OLE_TelecomDW].Properties[ConnectionString]"
+    ValueType="String">
+    <ConfiguredValue>
+      Provider=SQLNCLI11;Server=.;Database=TelecomDW;Integrated Security=SSPI;
+    </ConfiguredValue>
+  </Configuration>
+
+  <!-- Subscribers CSV Path -->
+  <Configuration ConfiguredType="Property"
+    Path="\Package.Connections[FF_Subscribers_CSV].Properties[ConnectionString]"
+    ValueType="String">
+    <ConfiguredValue>C:\TelecomDW\sample_data\subscribers.csv</ConfiguredValue>
+  </Configuration>
+
+  <!-- Billing CSV Path -->
+  <Configuration ConfiguredType="Property"
+    Path="\Package.Connections[FF_Billing_CSV].Properties[ConnectionString]"
+    ValueType="String">
+    <ConfiguredValue>C:\TelecomDW\sample_data\billing.csv</ConfiguredValue>
+  </Configuration>
+
+  <!-- CDR CSV Path -->
+  <Configuration ConfiguredType="Property"
+    Path="\Package.Connections[FF_CDR_CSV].Properties[ConnectionString]"
+    ValueType="String">
+    <ConfiguredValue>C:\TelecomDW\sample_data\cdr.csv</ConfiguredValue>
+  </Configuration>
+
+  <!-- Network Performance CSV Path -->
+  <Configuration ConfiguredType="Property"
+    Path="\Package.Connections[FF_Network_CSV].Properties[ConnectionString]"
+    ValueType="String">
+    <ConfiguredValue>C:\TelecomDW\sample_data\network_performance.csv</ConfiguredValue>
+  </Configuration>
+</DTSConfiguration>
